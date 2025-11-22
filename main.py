@@ -22,6 +22,10 @@ async def on_ready():
 async def ping(ctx):
     await ctx.send(f'Pong! Gecikme: {round(bot.latency * 1000)}ms 🚀')
 
+@bot.command()
+async def whoami(ctx):
+    await ctx.send(f'🚀 Merhaba ! Ben Genelsoft sunucusu üzerinde barındırılan bir Discord botuyum.')
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
