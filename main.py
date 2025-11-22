@@ -26,6 +26,10 @@ async def ping(ctx):
 async def whoami(ctx):
     await ctx.send(f'🚀 Merhaba ! Ben Genelsoft sunucusu üzerinde barındırılan bir Discord botuyum.')
 
+@bot.command()
+async def tarifeler(ctx):
+    await ctx.send(f'🚀 Tarifeler => Türk 30 TL | Kürt 250 TL.')
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
