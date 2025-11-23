@@ -328,6 +328,57 @@ async def duello(interaction: discord.Interaction, rakip: discord.User):
     
     await interaction.response.send_message(embed=embed, view=view)
 
+# --- YARDIM MENÜSÜ ---
+
+@bot.tree.command(name="komutlar", description="Mevcut tüm komutları ve kullanımlarını listeler.")
+async def komutlar(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📜 Komut Listesi",
+        description="Bot üzerinde kullanabileceğin tüm komutlar ve detayları aşağıdadır Lordum:",
+        color=discord.Color.gold()
+    )
+
+    # Genel Komutlar
+    embed.add_field(
+        name="⚙️ Genel & Sistem",
+        value=(
+            "**/rehber** - Hosting ve kurulum rehberini gösterir.\n"
+            "**/ping** - Botun gecikme süresini (ms) gösterir.\n"
+            "**/whoami** - Bot hakkında genel bilgi verir."
+        ),
+        inline=False
+    )
+
+    # Eğlence Komutları
+    embed.add_field(
+        name="🎉 Eğlence & Oyun",
+        value=(
+            "**/duello [kullanıcı]** - Etiketlediğin kişiyle sıra tabanlı bir savaşa girersin.\n"
+            "**/slot** - Şansını slot makinesinde denersin.\n"
+            "**/yazi_tura** - Havaya para atar.\n"
+            "**/sansli_sayi** - Sana özel 0-100 arası bir sayı üretir.\n"
+            "**/saril [kullanıcı]** - Birine sanal olarak sarılırsın."
+        ),
+        inline=False
+    )
+
+    # Araçlar ve Moderasyon
+    embed.add_field(
+        name="🛠️ Araçlar & Yönetim",
+        value=(
+            "**/takimayarla [sayı] [isimler]** - İsimleri virgülle ayırarak yaz, rastgele takımlara böler.\n"
+            "**/secim_yap [seçenek1] [seçenek2]** - İki arada kaldıysan senin yerine seçer.\n"
+            "**/anket [soru]** - Evet/Hayır tepkili bir anket başlatır.\n"
+            "**/avatar [kullanıcı]** - Kullanıcının profil resmini büyütür.\n"
+            "**/temizle [sayı]** - Belirtilen sayıda mesajı siler (Yetki gerektirir)."
+        ),
+        inline=False
+    )
+
+    embed.set_footer(text=f"{bot.user.name} hizmetinizde.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
+    
+    await interaction.response.send_message(embed=embed)
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
