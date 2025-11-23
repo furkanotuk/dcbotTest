@@ -141,6 +141,123 @@ async def kullanici_bilgi(interaction: discord.Interaction, kullanici: discord.M
     await interaction.response.send_message(embed=embed)
 
 
+# ==========================================
+# 3. ARAÇLAR VE FAYDALI KOMUTLAR
+# ==========================================
+
+@bot.tree.command(name="sifre_uret", description="Güçlü bir şifre oluşturur.")
+@app_commands.describe(uzunluk="Şifre kaç karakter olsun? (Max 50)")
+async def sifre_uret(interaction: discord.Interaction, uzunluk: int = 12):
+    if uzunluk > 50: uzunluk = 50
+    karakterler = string.ascii_letters + string.digits + "!@#$%^&*"
+    sifre = "".join(random.choice(karakterler) for _ in range(uzunluk))
+    await interaction.response.send_message(f"🔐 **Oluşturulan Şifre:** ||{sifre}|| \n*(Sadece sen görebilirsin)*", ephemeral=True)
+
+@bot.tree.command(name="matematik", description="Basit matematik işlemleri yapar.")
+@app_commands.describe(islem="Topla, Cikar, Carp, Bol", sayi1="İlk sayı", sayi2="İkinci sayı")
+@app_commands.choices(islem=[
+    app_commands.Choice(name="Toplama (+)", value="topla"),
+    app_commands.Choice(name="Çıkarma (-)", value="cikar"),
+    app_commands.Choice(name="Çarpma (x)", value="carp"),
+    app_commands.Choice(name="Bölme (/)", value="bol")
+])
+async def matematik(interaction: discord.Interaction, islem: str, sayi1: float, sayi2: float):
+    sonuc = 0
+    sembol = ""
+    if islem == "topla": sonuc, sembol = sayi1 + sayi2, "+"
+    elif islem == "cikar": sonuc, sembol = sayi1 - sayi2, "-"
+    elif islem == "carp": sonuc, sembol = sayi1 * sayi2, "x"
+    elif islem == "bol":
+        if sayi2 == 0:
+            await interaction.response.send_message("❌ Sıfıra bölemezsin dahi çocuk!", ephemeral=True)
+            return
+        sonuc, sembol = sayi1 / sayi2, "/"
+    
+    await interaction.response.send_message(f"🧮 **İşlem:** {sayi1} {sembol} {sayi2} = **{sonuc}**")
+
+@bot.tree.command(name="kelime_say", description="Yazdığın metindeki kelime ve harf sayısını gösterir.")
+async def kelime_say(interaction: discord.Interaction, metin: str):
+    kelimeler = len(metin.split())
+    harfler = len(metin)
+    await interaction.response.send_message(f"📝 **Analiz:**\nKelime Sayısı: {kelimeler}\nKarakter Sayısı: {harfler}")
+
+@bot.tree.command(name="yaz", description="Bot ağzından mesaj yazdırır.")
+async def yaz(interaction: discord.Interaction, mesaj: str):
+    await interaction.response.send_message(f"📨 Mesaj gönderildi.", ephemeral=True)
+    await interaction.channel.send(mesaj)
+
+# ==========================================
+# 4. EĞLENCE KOMUTLARI (GENİŞLETİLMİŞ)
+# ==========================================
+
+@bot.tree.command(name="ask_olc", description="İki kişi arasındaki aşk uyumunu ölçer ❤️")
+async def ask_olc(interaction: discord.Interaction, partner: discord.User):
+    uyum = random.randint(0, 100)
+    emoji = "💔" if uyum < 20 else "😐" if uyum < 50 else "❤️" if uyum < 80 else "🔥"
+    
+    metin = f"💘 **Aşk Ölçer:**\n{interaction.user.mention} + {partner.mention}\n"
+    metin += f"Uyum: **%{uyum}** {emoji}\n"
+    
+    yorum = "Kaç kurtar kendini!" if uyum < 20 else "Eh işte..." if uyum < 50 else "Çok yakışıyorsunuz!" if uyum < 90 else "EVLENİN HEMEN!"
+    
+    embed = discord.Embed(description=metin + f"*{yorum}*", color=discord.Color.pink())
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="8ball", description="Sihirli küreye bir soru sor.")
+async def eightball(interaction: discord.Interaction, soru: str):
+    cevaplar = ["Kesinlikle evet.", "Gördüğüm kadarıyla evet.", "Büyük ihtimalle.", "Biraz şüpheli.", 
+                "Şu an söyleyemem.", "Tekrar dene.", "Asla.", "Rüyanda görürsün."]
+    secilen = random.choice(cevaplar)
+    await interaction.response.send_message(f"🎱 **Soru:** {soru}\n🔮 **Cevap:** {secilen}")
+
+@bot.tree.command(name="tas_kagit_makas", description="Bot ile Taş Kağıt Makas oyna.")
+@app_commands.choices(secim=[
+    app_commands.Choice(name="Taş 🪨", value="tas"),
+    app_commands.Choice(name="Kağıt 📜", value="kagit"),
+    app_commands.Choice(name="Makas ✂️", value="makas")
+])
+async def tkm(interaction: discord.Interaction, secim: str):
+    bot_secim = random.choice(["tas", "kagit", "makas"])
+    sonuc = ""
+    
+    if secim == bot_secim:
+        sonuc = "🤝 Berabere!"
+    elif (secim == "tas" and bot_secim == "makas") or \
+         (secim == "kagit" and bot_secim == "tas") or \
+         (secim == "makas" and bot_secim == "kagit"):
+        sonuc = "🎉 Sen kazandın!"
+    else:
+        sonuc = "🤖 Ben kazandım!"
+        
+    emoji_map = {"tas": "🪨", "kagit": "📜", "makas": "✂️"}
+    await interaction.response.send_message(f"Sen: {emoji_map[secim]} 🆚 Ben: {emoji_map[bot_secim]}\n**Sonuç:** {sonuc}")
+
+@bot.tree.command(name="ters_yazi", description="Yazdığın mesajı tersten yazar.")
+async def ters_yazi(interaction: discord.Interaction, metin: str):
+    await interaction.response.send_message(f"🔄 {metin[::-1]}")
+
+@bot.tree.command(name="iltifat", description="Kendine veya birine iltifat et.")
+async def iltifat(interaction: discord.Interaction, kullanici: discord.User = None):
+    sozler = ["Gözlerin yıldızlar gibi parlıyor.", "Bugün harika görünüyorsun!", "Sen bir efsanesin.", 
+              "Zekan beni benden alıyor.", "Gülüşün dünyayı aydınlatıyor."]
+    hedef = kullanici if kullanici else interaction.user
+    await interaction.response.send_message(f"✨ {hedef.mention}, {random.choice(sozler)}")
+
+@bot.tree.command(name="tokat", description="Birini tokatla! (Sanal olarak)")
+async def tokat(interaction: discord.Interaction, kurban: discord.User):
+    gifler = [
+        "https://media.giphy.com/media/Gf3AUz3eBNbSXOEQu4/giphy.gif",
+        "https://media.giphy.com/media/xT9IgzFnSqzt2Sp3EI/giphy.gif"
+    ]
+    embed = discord.Embed(description=f"👋 {interaction.user.mention}, {kurban.mention} kişisine Osmanlı tokadı attı!", color=discord.Color.red())
+    embed.set_image(url=random.choice(gifler))
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="zar_at", description="İstediğin yüzey sayısına sahip bir zar at.")
+async def zar_at(interaction: discord.Interaction, yuzey: int = 6):
+    gelen = random.randint(1, yuzey)
+    await interaction.response.send_message(f"🎲 D{yuzey} Zarı atıldı... Gelen sayı: **{gelen}**")
+
 @bot.tree.command(name="ping", description="Botun gecikme süresini ölçer.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
@@ -441,55 +558,49 @@ async def duello(interaction: discord.Interaction, rakip: discord.User):
 
 # --- YARDIM MENÜSÜ ---
 
-@bot.tree.command(name="komutlar", description="Mevcut tüm komutları ve kullanımlarını listeler.")
+# ==========================================
+# 5. YENİLENMİŞ YARDIM MENÜSÜ
+# ==========================================
+
+@bot.tree.command(name="komutlar", description="Tüm komutları kategorize edilmiş şekilde listeler.")
 async def komutlar(interaction: discord.Interaction):
     embed = discord.Embed(
-        title="📜 Komut Listesi",
-        description="Bot üzerinde kullanabileceğin tüm komutlar ve detayları aşağıdadır Lordum:",
+        title="📜 Bot Komut Merkezi",
+        description=f"Lordum {interaction.user.mention}, emrinize amade toplam **30+** komut bulunmaktadır.",
         color=discord.Color.gold()
     )
 
-    # Genel Komutlar
+    # 🛡️ Moderasyon
     embed.add_field(
-        name="⚙️ Genel & Sistem",
-        value=(
-            "**/rehber** - Hosting ve kurulum rehberini gösterir.\n"
-            "**/ping** - Botun gecikme süresini (ms) gösterir.\n"
-            "**/whoami** - Bot hakkında genel bilgi verir."
-        ),
+        name="🛡️ Moderasyon & Yönetim",
+        value="`/at`, `/yasakla`, `/yasak_kaldir`, `/timeout`, `/timeout_kaldir`, `/kanal_kilitle`, `/kanal_ac`, `/rol_ver`, `/rol_al`, `/temizle`",
         inline=False
     )
 
-    # Eğlence Komutları
+    # 📊 Bilgi & Analiz
+    embed.add_field(
+        name="📊 Bilgi & Analiz",
+        value="`/sunucu_bilgi`, `/kullanici_bilgi`, `/avatar`, `/whoami`, `/ping`, `/rehber`",
+        inline=False
+    )
+
+    # 🛠️ Araçlar
+    embed.add_field(
+        name="🛠️ Faydalı Araçlar",
+        value="`/sifre_uret`, `/matematik`, `/kelime_say`, `/yaz` (Bot olarak yaz), `/anket`, `/takimayarla`, `/secim_yap`",
+        inline=False
+    )
+
+    # 🎉 Eğlence
     embed.add_field(
         name="🎉 Eğlence & Oyun",
-        value=(
-            "**/duello [kullanıcı]** - Etiketlediğin kişiyle sıra tabanlı bir savaşa girersin.\n"
-            "**/slot** - Şansını slot makinesinde denersin.\n"
-            "**/yazi_tura** - Havaya para atar.\n"
-            "**/sansli_sayi** - Sana özel 0-100 arası bir sayı üretir.\n"
-            "**/saril [kullanıcı]** - Birine sanal olarak sarılırsın."
-        ),
+        value="`/duello`, `/slot`, `/8ball` (Sihirli Küre), `/ask_olc`, `/tas_kagit_makas`, `/zar_at`, `/tokat`, `/iltifat`, `/ters_yazi`, `/yazi_tura`, `/sansli_sayi`, `/saril`",
         inline=False
     )
 
-    # Araçlar ve Moderasyon
-    embed.add_field(
-        name="🛠️ Araçlar & Yönetim",
-        value=(
-            "**/takimayarla [sayı] [isimler]** - İsimleri virgülle ayırarak yaz, rastgele takımlara böler.\n"
-            "**/secim_yap [seçenek1] [seçenek2]** - İki arada kaldıysan senin yerine seçer.\n"
-            "**/anket [soru]** - Evet/Hayır tepkili bir anket başlatır.\n"
-            "**/avatar [kullanıcı]** - Kullanıcının profil resmini büyütür.\n"
-            "**/temizle [sayı]** - Belirtilen sayıda mesajı siler (Yetki gerektirir)."
-        ),
-        inline=False
-    )
-
-    embed.set_footer(text=f"{bot.user.name} hizmetinizde.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
-    
+    embed.set_footer(text="Ali Eray Dinçer Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
     await interaction.response.send_message(embed=embed)
-
+    
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
