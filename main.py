@@ -598,9 +598,9 @@ async def komutlar(interaction: discord.Interaction):
         inline=False
     )
 
-    embed.set_footer(text="Ali Eray Dinçer Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
+    embed.set_footer(text="Furkan Otuk Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
     await interaction.response.send_message(embed=embed)
-    
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
