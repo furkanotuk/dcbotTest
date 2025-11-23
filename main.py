@@ -87,6 +87,46 @@ Discord botunuzu sistemimize entegre etmek için aşağıdaki adımları takip e
     """
     await interaction.response.send_message(metin)
 
+@bot.tree.command(name="takimayarla", description="Kişileri rastgele takımlara böler.")
+@app_commands.describe(takimsayi="Kaç adet takım oluşturulacak?", takimliste="İsimleri aralarına virgül (,) koyarak yazınız.")
+async def takimayarla(interaction: discord.Interaction, takimsayi: int, takimliste: str):
+    # 1. Listeyi virgüllerden ayırıp temizleyelim
+    oyuncular = [isim.strip() for isim in takimliste.split(',') if isim.strip()]
+    
+    # 2. Hata Kontrolleri
+    if takimsayi < 1:
+        await interaction.response.send_message("❌ Takım sayısı en az 1 olmalıdır.", ephemeral=True)
+        return
+    
+    if len(oyuncular) < takimsayi:
+        await interaction.response.send_message(f"❌ Yeterli kişi yok! {len(oyuncular)} kişiyi {takimsayi} takıma bölemem.", ephemeral=True)
+        return
+
+    # 3. Listeyi Karıştır
+    random.shuffle(oyuncular)
+
+    # 4. Takımları Oluştur (Sözlük yapısı)
+    takimlar = {i: [] for i in range(1, takimsayi + 1)}
+
+    # 5. Oyuncuları sırayla takımlara dağıt
+    for index, oyuncu in enumerate(oyuncular):
+        takim_no = (index % takimsayi) + 1
+        takimlar[takim_no].append(oyuncu)
+
+    # 6. Embed Oluşturup Gönder
+    embed = discord.Embed(
+        title="🎲 Takımlar Oluşturuldu",
+        description=f"Toplam **{len(oyuncular)}** kişi **{takimsayi}** takıma ayrıldı.",
+        color=discord.Color.green()
+    )
+
+    for no, uyeler in takimlar.items():
+        # Listeyi alt alta sırala
+        uye_listesi = "\n".join([f"• {uye}" for uye in uyeler])
+        embed.add_field(name=f"🏆 Takım {no}", value=uye_listesi, inline=True)
+
+    await interaction.response.send_message(embed=embed)
+
 if __name__ == "__main__":
     if not TOKEN:
         print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
