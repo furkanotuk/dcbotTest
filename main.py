@@ -30,6 +30,117 @@ async def on_ready():
 
 # --- TEMEL KOMUTLAR ---
 
+# ==========================================
+# 1. MODERASYON VE YÖNETİM KOMUTLARI
+# ==========================================
+
+@bot.tree.command(name="at", description="Belirtilen kullanıcıyı sunucudan atar (Kick).")
+@app_commands.describe(kullanici="Atılacak kullanıcı", sebep="Atılma sebebi")
+@app_commands.checks.has_permissions(kick_members=True)
+async def at(interaction: discord.Interaction, kullanici: discord.Member, sebep: str = "Sebep belirtilmedi"):
+    if kullanici.top_role >= interaction.user.top_role:
+        await interaction.response.send_message("❌ Bu kişinin yetkisi senden yüksek veya eşit, onu atamam Lordum.", ephemeral=True)
+        return
+    await kullanici.kick(reason=sebep)
+    await interaction.response.send_message(f"👢 **{kullanici.name}** sunucudan atıldı. Sebep: {sebep}")
+
+@bot.tree.command(name="yasakla", description="Belirtilen kullanıcıyı sunucudan yasaklar (Ban).")
+@app_commands.describe(kullanici="Yasaklanacak kullanıcı", sebep="Yasaklanma sebebi")
+@app_commands.checks.has_permissions(ban_members=True)
+async def yasakla(interaction: discord.Interaction, kullanici: discord.Member, sebep: str = "Sebep belirtilmedi"):
+    if kullanici.top_role >= interaction.user.top_role:
+        await interaction.response.send_message("❌ Bu kişinin yetkisi senden yüksek, onu yasaklayamam Lordum.", ephemeral=True)
+        return
+    await kullanici.ban(reason=sebep)
+    await interaction.response.send_message(f"⛔ **{kullanici.name}** yasaklandı! Yargı dağıtıldı. Sebep: {sebep}")
+
+@bot.tree.command(name="yasak_kaldir", description="Kullanıcının yasağını kaldırır (Unban).")
+@app_commands.describe(kullanici_id="Yasağı kalkacak kişinin ID'si")
+@app_commands.checks.has_permissions(ban_members=True)
+async def yasak_kaldir(interaction: discord.Interaction, kullanici_id: str):
+    user = await bot.fetch_user(int(kullanici_id))
+    await interaction.guild.unban(user)
+    await interaction.response.send_message(f"✅ **{user.name}** adlı kişinin yasağı kaldırıldı.")
+
+@bot.tree.command(name="timeout", description="Kullanıcıya süreli susturma (timeout) uygular.")
+@app_commands.describe(kullanici="Susturulacak kişi", dakika="Kaç dakika?")
+@app_commands.checks.has_permissions(moderate_members=True)
+async def timeout(interaction: discord.Interaction, kullanici: discord.Member, dakika: int):
+    sure = timedelta(minutes=dakika)
+    await kullanici.timeout(sure)
+    await interaction.response.send_message(f"🤐 **{kullanici.name}**, {dakika} dakika boyunca cezalı köşeye gönderildi.")
+
+@bot.tree.command(name="timeout_kaldir", description="Susturmayı kaldırır.")
+@app_commands.checks.has_permissions(moderate_members=True)
+async def timeout_kaldir(interaction: discord.Interaction, kullanici: discord.Member):
+    await kullanici.timeout(None)
+    await interaction.response.send_message(f"🗣️ **{kullanici.name}** artık konuşabilir.")
+
+@bot.tree.command(name="kanal_kilitle", description="Bulunulan kanalı mesaj gönderimine kapatır.")
+@app_commands.checks.has_permissions(manage_channels=True)
+async def kanal_kilitle(interaction: discord.Interaction):
+    await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
+    await interaction.response.send_message("🔒 Kanal kilitlendi Lordum! Kimse yazamaz.")
+
+@bot.tree.command(name="kanal_ac", description="Kanal kilidini açar.")
+@app_commands.checks.has_permissions(manage_channels=True)
+async def kanal_ac(interaction: discord.Interaction):
+    await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
+    await interaction.response.send_message("🔓 Kanal tekrar erişime açıldı.")
+
+@bot.tree.command(name="rol_ver", description="Bir kullanıcıya rol verir.")
+@app_commands.checks.has_permissions(manage_roles=True)
+async def rol_ver(interaction: discord.Interaction, kullanici: discord.Member, rol: discord.Role):
+    await kullanici.add_roles(rol)
+    await interaction.response.send_message(f"✅ **{rol.name}** rolü {kullanici.mention} kişisine verildi.")
+
+@bot.tree.command(name="rol_al", description="Bir kullanıcıdan rol alır.")
+@app_commands.checks.has_permissions(manage_roles=True)
+async def rol_al(interaction: discord.Interaction, kullanici: discord.Member, rol: discord.Role):
+    await kullanici.remove_roles(rol)
+    await interaction.response.send_message(f"❌ **{rol.name}** rolü {kullanici.mention} kişisinden alındı.")
+
+# Hata Yönetimi (Yetki Yoksa)
+async def permission_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.MissingPermissions):
+        await interaction.response.send_message("❌ Bunu yapmak için yeterli yetkiniz yok Lordum.", ephemeral=True)
+
+at.error(permission_error)
+yasakla.error(permission_error)
+kanal_kilitle.error(permission_error)
+
+# ==========================================
+# 2. BİLGİ VE ANALİZ KOMUTLARI
+# ==========================================
+
+@bot.tree.command(name="sunucu_bilgi", description="Sunucu hakkında detaylı bilgi verir.")
+async def sunucu_bilgi(interaction: discord.Interaction):
+    guild = interaction.guild
+    embed = discord.Embed(title=f"{guild.name} Bilgileri", color=discord.Color.blue())
+    embed.add_field(name="👑 Sahip", value=f"{guild.owner.mention}", inline=True)
+    embed.add_field(name="👥 Üye Sayısı", value=f"{guild.member_count}", inline=True)
+    embed.add_field(name="🆔 Sunucu ID", value=f"{guild.id}", inline=True)
+    embed.add_field(name="📅 Oluşturulma", value=guild.created_at.strftime("%d/%m/%Y"), inline=True)
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="kullanici_bilgi", description="Bir kullanıcı hakkında bilgi verir.")
+async def kullanici_bilgi(interaction: discord.Interaction, kullanici: discord.Member = None):
+    kullanici = kullanici or interaction.user
+    roller = [rol.mention for rol in kullanici.roles if rol.name != "@everyone"]
+    
+    embed = discord.Embed(title="Kullanıcı Kimlik Kartı", color=kullanici.color)
+    embed.set_thumbnail(url=kullanici.avatar.url if kullanici.avatar else None)
+    embed.add_field(name="👤 İsim", value=kullanici.name, inline=True)
+    embed.add_field(name="🏷️ Takma Ad", value=kullanici.display_name, inline=True)
+    embed.add_field(name="📅 Katılım Tarihi", value=kullanici.joined_at.strftime("%d/%m/%Y"), inline=True)
+    embed.add_field(name="🆔 ID", value=kullanici.id, inline=True)
+    embed.add_field(name="🎖️ Roller", value=" ".join(roller) if roller else "Yok", inline=False)
+    
+    await interaction.response.send_message(embed=embed)
+
+
 @bot.tree.command(name="ping", description="Botun gecikme süresini ölçer.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
