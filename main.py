@@ -1,8 +1,11 @@
 import discord
 import os
 import random
+import string
+import datetime
 from discord.ext import commands
 from discord import app_commands
+from datetime import timedelta
 
 # Tokeni environment variable'dan çekiyoruz
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -10,6 +13,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 # Intent ayarları
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True # Üye yönetimi için gerekli
 
 # Bot kurulumu
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -21,14 +25,11 @@ async def on_ready():
     print(f'ID: {bot.user.id}')
     print(f'------------------------------------')
     
-    # Slash komutlarını Discord'a senkronize ediyoruz
     try:
         synced = await bot.tree.sync()
         print(f'{len(synced)} adet slash komutu senkronize edildi.')
     except Exception as e:
         print(f'Senkronizasyon hatası: {e}')
-
-# --- TEMEL KOMUTLAR ---
 
 # ==========================================
 # 1. MODERASYON VE YÖNETİM KOMUTLARI
@@ -139,7 +140,6 @@ async def kullanici_bilgi(interaction: discord.Interaction, kullanici: discord.M
     embed.add_field(name="🎖️ Roller", value=" ".join(roller) if roller else "Yok", inline=False)
     
     await interaction.response.send_message(embed=embed)
-
 
 # ==========================================
 # 3. ARAÇLAR VE FAYDALI KOMUTLAR
@@ -258,6 +258,9 @@ async def zar_at(interaction: discord.Interaction, yuzey: int = 6):
     gelen = random.randint(1, yuzey)
     await interaction.response.send_message(f"🎲 D{yuzey} Zarı atıldı... Gelen sayı: **{gelen}**")
 
+# --- ESKİ KOMUTLARIN DEVAMI VE DİĞERLERİ ---
+# (Eski basit komutları buraya dahil ediyorum)
+
 @bot.tree.command(name="ping", description="Botun gecikme süresini ölçer.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
@@ -265,9 +268,7 @@ async def ping(interaction: discord.Interaction):
 
 @bot.tree.command(name="whoami", description="Bot hakkında bilgi verir.")
 async def whoami(interaction: discord.Interaction):
-    await interaction.response.send_message(f'🚀 Merhaba! Ben Genelsoft sunucusu üzerinde barındırılan, slash komutlarıyla çalışan modern bir Discord botuyum.')
-
-# --- EĞLENCELİ KOMUTLAR ---
+    await interaction.response.send_message(f'🚀 Merhaba! Ben Genelsoft sunucusu üzerinde barındırılan, modern bir Discord botuyum.')
 
 @bot.tree.command(name="sansli_sayi", description="Sana özel şanslı bir sayı üretir.")
 async def sansli_sayi(interaction: discord.Interaction):
@@ -289,8 +290,6 @@ async def secim_yap(interaction: discord.Interaction, secenek1: str, secenek2: s
 @app_commands.describe(kullanici="Sarılmak istediğin kullanıcı")
 async def saril(interaction: discord.Interaction, kullanici: discord.User):
     await interaction.response.send_message(f'🤗 {interaction.user.mention}, {kullanici.mention} kullanıcısına kocaman sarıldı!')
-
-# --- REHBER KOMUTU ---
 
 @bot.tree.command(name="rehber", description="Discord Bot Barındırma ve Kurulum Rehberi")
 async def rehber(interaction: discord.Interaction):
@@ -316,86 +315,42 @@ Discord botunuzu sistemimize entegre etmek için aşağıdaki adımları takip e
     await interaction.response.send_message(metin)
 
 @bot.tree.command(name="takimayarla", description="Kişileri rastgele takımlara böler.")
-@app_commands.describe(takimsayi="Kaç adet takım oluşturulacak?", takimliste="İsimleri aralarına virgül (,) koyarak yazınız.")
 async def takimayarla(interaction: discord.Interaction, takimsayi: int, takimliste: str):
-    # 1. Listeyi virgüllerden ayırıp temizleyelim
     oyuncular = [isim.strip() for isim in takimliste.split(',') if isim.strip()]
-    
-    # 2. Hata Kontrolleri
-    if takimsayi < 1:
-        await interaction.response.send_message("❌ Takım sayısı en az 1 olmalıdır.", ephemeral=True)
+    if takimsayi < 1 or len(oyuncular) < takimsayi:
+        await interaction.response.send_message("❌ Yetersiz kişi veya hatalı sayı.", ephemeral=True)
         return
-    
-    if len(oyuncular) < takimsayi:
-        await interaction.response.send_message(f"❌ Yeterli kişi yok! {len(oyuncular)} kişiyi {takimsayi} takıma bölemem.", ephemeral=True)
-        return
-
-    # 3. Listeyi Karıştır
     random.shuffle(oyuncular)
-
-    # 4. Takımları Oluştur (Sözlük yapısı)
     takimlar = {i: [] for i in range(1, takimsayi + 1)}
-
-    # 5. Oyuncuları sırayla takımlara dağıt
     for index, oyuncu in enumerate(oyuncular):
         takim_no = (index % takimsayi) + 1
         takimlar[takim_no].append(oyuncu)
-
-    # 6. Embed Oluşturup Gönder
-    embed = discord.Embed(
-        title="🎲 Takımlar Oluşturuldu",
-        description=f"Toplam **{len(oyuncular)}** kişi **{takimsayi}** takıma ayrıldı.",
-        color=discord.Color.green()
-    )
-
+    
+    embed = discord.Embed(title="🎲 Takımlar Oluşturuldu", color=discord.Color.green())
     for no, uyeler in takimlar.items():
-        # Listeyi alt alta sırala
-        uye_listesi = "\n".join([f"• {uye}" for uye in uyeler])
-        embed.add_field(name=f"🏆 Takım {no}", value=uye_listesi, inline=True)
-
+        embed.add_field(name=f"🏆 Takım {no}", value="\n".join([f"• {u}" for u in uyeler]), inline=True)
     await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="anket", description="Basit bir anket başlatır.")
-@app_commands.describe(soru="Anket sorusu nedir?")
 async def anket(interaction: discord.Interaction, soru: str):
-    embed = discord.Embed(
-        title="📊 Yeni Anket!",
-        description=f"**{soru}**",
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=f"{interaction.user.display_name} tarafından başlatıldı.")
-    
-    # Mesajı gönderiyoruz ama bir değişkene atıyoruz ki tepki ekleyebilelim
+    embed = discord.Embed(title="📊 Yeni Anket!", description=f"**{soru}**", color=discord.Color.blue())
+    embed.set_footer(text=f"{interaction.user.display_name} başlattı.")
     await interaction.response.send_message(embed=embed)
     message = await interaction.original_response()
-    
-    # Evet/Hayır tepkilerini ekleyelim
     await message.add_reaction("✅")
     await message.add_reaction("❌")
 
 @bot.tree.command(name="temizle", description="Belirtilen miktarda mesajı siler.")
-@app_commands.describe(sayi="Silinecek mesaj sayısı")
-@app_commands.checks.has_permissions(manage_messages=True) # Sadece yetkisi olanlar
+@app_commands.checks.has_permissions(manage_messages=True)
 async def temizle(interaction: discord.Interaction, sayi: int):
     if sayi > 100:
-        await interaction.response.send_message("❌ Tek seferde en fazla 100 mesaj silebilirsin.", ephemeral=True)
+        await interaction.response.send_message("❌ Max 100 mesaj.", ephemeral=True)
         return
-
-    # İşlem biraz sürebileceği için 'defer' kullanıyoruz (bekletiyor)
     await interaction.response.defer(ephemeral=True) 
-    
     deleted = await interaction.channel.purge(limit=sayi)
-    
-    await interaction.followup.send(f"🧹 **{len(deleted)}** adet mesaj başarıyla silindi!", ephemeral=True)
+    await interaction.followup.send(f"🧹 **{len(deleted)}** mesaj silindi!", ephemeral=True)
 
-# Yetki hatası olursa kullanıcıya bildirmek için hata yakalayıcı
-@temizle.error
-async def temizle_error(interaction: discord.Interaction, error):
-    if isinstance(error, app_commands.MissingPermissions):
-        await interaction.response.send_message("❌ Bu komutu kullanmak için 'Mesajları Yönet' yetkisine sahip olmalısın Lordum.", ephemeral=True)
-
-@bot.tree.command(name="avatar", description="Bir kullanıcının profil fotoğrafını büyük boy gösterir.")
-@app_commands.describe(kullanici="Hangi kullanıcının avatarı?")
+@bot.tree.command(name="avatar", description="Kullanıcı avatarını gösterir.")
 async def avatar(interaction: discord.Interaction, kullanici: discord.User):
     embed = discord.Embed(title=f"{kullanici.name} Avatarı", color=discord.Color.purple())
     embed.set_image(url=kullanici.avatar.url)
@@ -404,159 +359,69 @@ async def avatar(interaction: discord.Interaction, kullanici: discord.User):
 @bot.tree.command(name="slot", description="Slot makinesini çevir!")
 async def slot(interaction: discord.Interaction):
     emojiler = ["🍒", "🍋", "🍇", "🍉", "7️⃣", "💎"]
-    a = random.choice(emojiler)
-    b = random.choice(emojiler)
-    c = random.choice(emojiler)
-
-    slot_ekrani = f"**| {a} | {b} | {c} |**"
-    
-    if a == b == c:
-        mesaj = f"🎉 **JACKPOT!** Tebrikler {interaction.user.mention}, büyük ödülü kazandın!"
-        renk = discord.Color.gold()
-    elif a == b or a == c or b == c:
-        mesaj = f"🤏 **Ucu ucuna!** İki tane yakaladın, tekrar dene."
-        renk = discord.Color.orange()
-    else:
-        mesaj = f"🥀 **Kaybettin.** Üzülme, kumarda kaybeden aşkta kazanır."
-        renk = discord.Color.red()
-
-    embed = discord.Embed(title="🎰 Slot Makinesi", description=f"{slot_ekrani}\n\n{mesaj}", color=renk)
+    a, b, c = random.choice(emojiler), random.choice(emojiler), random.choice(emojiler)
+    mesaj = "🎉 JACKPOT!" if a == b == c else "🤏 Ucu ucuna!" if a == b or a == c or b == c else "🥀 Kaybettin."
+    embed = discord.Embed(title="🎰 Slot", description=f"**| {a} | {b} | {c} |**\n\n{mesaj}", color=discord.Color.gold())
     await interaction.response.send_message(embed=embed)
 
-# --- DÜELLO SİSTEMİ İÇİN GEREKLİ SINIF ---
+# --- DÜELLO SİSTEMİ (Değişmedi, sadece sınıfı ekliyoruz) ---
 
 class DuelloView(discord.ui.View):
     def __init__(self, oyuncu1: discord.User, oyuncu2: discord.User):
-        super().__init__(timeout=120) # 2 dakika süre aşımı
-        self.p1 = oyuncu1
-        self.p2 = oyuncu2
-        self.hp = {self.p1.id: 100, self.p2.id: 100} # Başlangıç canları
-        self.sira = self.p1.id # İlk sıra oyuncu 1'de
-        self.log = "⚔️ Düello başladı! İlk hamle bekleniyor..."
+        super().__init__(timeout=120)
+        self.p1, self.p2 = oyuncu1, oyuncu2
+        self.hp = {self.p1.id: 100, self.p2.id: 100}
+        self.sira = self.p1.id
+        self.log = "⚔️ Düello başladı!"
 
-    async def guncelle(self, interaction: discord.Interaction, bitti_mi=False):
-        # Can durumuna göre görsel bar oluşturma fonksiyonu
-        def can_bari(can):
-            dolu = int(can / 10)
-            return "🟩" * dolu + "⬜" * (10 - dolu)
-
-        durum_metni = (
-            f"**{self.p1.name}:** {self.hp[self.p1.id]} HP\n{can_bari(self.hp[self.p1.id])}\n\n"
-            f"**{self.p2.name}:** {self.hp[self.p2.id]} HP\n{can_bari(self.hp[self.p2.id])}"
-        )
-
-        embed = discord.Embed(
-            title="⚔️ DÜELLO ARENASI ⚔️",
-            description=f"{durum_metni}\n\n📜 **Son Olay:**\n{self.log}",
-            color=discord.Color.dark_red() if not bitti_mi else discord.Color.gold()
-        )
-        
-        if not bitti_mi:
-            siradaki = self.p1 if self.sira == self.p1.id else self.p2
-            embed.set_footer(text=f"Sıra sende: {siradaki.name}", icon_url=siradaki.avatar.url if siradaki.avatar else None)
-        else:
-            embed.set_footer(text="Oyun Sona Erdi.")
-
-        # Eğer oyun bittiyse butonları devre dışı bırak
-        if bitti_mi:
-            for child in self.children:
-                child.disabled = True
-        
+    async def guncelle(self, interaction, bitti_mi=False):
+        def can_bari(can): return "🟩" * int(can/10) + "⬜" * (10 - int(can/10))
+        durum = f"**{self.p1.name}:** {self.hp[self.p1.id]}\n{can_bari(self.hp[self.p1.id])}\n**{self.p2.name}:** {self.hp[self.p2.id]}\n{can_bari(self.hp[self.p2.id])}"
+        embed = discord.Embed(title="⚔️ ARENA", description=f"{durum}\n\n📜 {self.log}", color=discord.Color.red())
+        if bitti_mi: 
+            for c in self.children: c.disabled = True
+            embed.set_footer(text="Oyun Bitti")
         await interaction.response.edit_message(embed=embed, view=self)
 
-    async def sira_kontrol(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.sira:
-            await interaction.response.send_message(f"✋ Sıranı bekle {interaction.user.mention}!", ephemeral=True)
-            return False
-        return True
-
-    async def sira_degis(self):
-        self.sira = self.p2.id if self.sira == self.p1.id else self.p1.id
-
-    # --- BUTONLAR ---
-
-    @discord.ui.button(label="Saldır (Güvenli)", style=discord.ButtonStyle.primary, emoji="🗡️")
-    async def normal_saldiri(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.sira_kontrol(interaction): return
-        
-        hasar = random.randint(10, 20)
-        rakip_id = self.p2.id if self.sira == self.p1.id else self.p1.id
-        self.hp[rakip_id] -= hasar
-        
+    async def islem_yap(self, interaction, tur):
+        if interaction.user.id != self.sira: return await interaction.response.send_message("Sıranı bekle!", ephemeral=True)
+        rakip = self.p2.id if self.sira == self.p1.id else self.p1.id
         vuran = self.p1.name if self.sira == self.p1.id else self.p2.name
         
-        self.log = f"💥 **{vuran}**, rakibine **{hasar}** hasar vurdu!"
-        
-        if self.hp[rakip_id] <= 0:
-            self.hp[rakip_id] = 0
-            self.log = f"🏆 **{vuran}** KAZANDI! Rakibini yere serdi!"
+        if tur == "normal":
+            dmg = random.randint(10, 20)
+            self.hp[rakip] -= dmg
+            self.log = f"💥 {vuran} vurdu: {dmg} hasar!"
+        elif tur == "agir":
+            if random.randint(1, 100) <= 40: self.log = f"💨 {vuran} ıskaladı!"
+            else:
+                dmg = random.randint(25, 40)
+                self.hp[rakip] -= dmg
+                self.log = f"🔥 {vuran} kritik vurdu: {dmg} hasar!"
+        elif tur == "heal":
+            heal = random.randint(10, 25)
+            self.hp[self.sira] = min(100, self.hp[self.sira] + heal)
+            self.log = f"✨ {vuran} iyileşti: +{heal} can."
+            
+        if self.hp[rakip] <= 0:
+            self.hp[rakip] = 0
+            self.log = f"🏆 {vuran} KAZANDI!"
             await self.guncelle(interaction, bitti_mi=True)
         else:
-            await self.sira_degis()
+            self.sira = rakip
             await self.guncelle(interaction)
 
-    @discord.ui.button(label="Ağır Saldır (Riskli)", style=discord.ButtonStyle.danger, emoji="🪓")
-    async def agir_saldiri(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.sira_kontrol(interaction): return
-
-        # %40 ıska geçme şansı, ama vurursa çok vurur
-        sans = random.randint(1, 100)
-        vuran = self.p1.name if self.sira == self.p1.id else self.p2.name
-        rakip_id = self.p2.id if self.sira == self.p1.id else self.p1.id
-
-        if sans <= 40: # Iska
-            self.log = f"💨 **{vuran}** ağır saldırı denedi ama ISKALADI!"
-        else:
-            hasar = random.randint(25, 40)
-            self.hp[rakip_id] -= hasar
-            self.log = f"🔥 **KRİTİK!** {vuran} balyoz gibi indirdi: **{hasar}** hasar!"
-
-        if self.hp[rakip_id] <= 0:
-            self.hp[rakip_id] = 0
-            self.log = f"🏆 **{vuran}** risk aldı ve KAZANDI!"
-            await self.guncelle(interaction, bitti_mi=True)
-        else:
-            await self.sira_degis()
-            await self.guncelle(interaction)
-
+    @discord.ui.button(label="Saldır", style=discord.ButtonStyle.primary, emoji="🗡️")
+    async def btn_normal(self, interaction, button): await self.islem_yap(interaction, "normal")
+    @discord.ui.button(label="Ağır Saldır", style=discord.ButtonStyle.danger, emoji="🪓")
+    async def btn_agir(self, interaction, button): await self.islem_yap(interaction, "agir")
     @discord.ui.button(label="İyileş", style=discord.ButtonStyle.success, emoji="🧪")
-    async def iyiles(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not await self.sira_kontrol(interaction): return
+    async def btn_heal(self, interaction, button): await self.islem_yap(interaction, "heal")
 
-        sifa = random.randint(10, 25)
-        self.hp[self.sira] += sifa
-        if self.hp[self.sira] > 100: self.hp[self.sira] = 100
-        
-        iyilesen = self.p1.name if self.sira == self.p1.id else self.p2.name
-        self.log = f"✨ **{iyilesen}** iksir içti ve **{sifa}** can yeniledi."
-        
-        await self.sira_degis()
-        await self.guncelle(interaction)
-
-# --- KOMUT KISMI ---
-
-@bot.tree.command(name="duello", description="Bir kullanıcı ile sıra tabanlı düello yap.")
-@app_commands.describe(rakip="Kime meydan okuyorsun?")
+@bot.tree.command(name="duello", description="Sıra tabanlı düello başlatır.")
 async def duello(interaction: discord.Interaction, rakip: discord.User):
-    if rakip.id == interaction.user.id:
-        await interaction.response.send_message("❌ Kendinle dövüşemezsin Lordum, bu delilik olur!", ephemeral=True)
-        return
-    
-    if rakip.bot:
-        await interaction.response.send_message("🤖 Botlara gücün yetmez, insanlarla dövüş.", ephemeral=True)
-        return
-
-    view = DuelloView(interaction.user, rakip)
-    
-    embed = discord.Embed(
-        title="⚔️ DÜELLO BAŞLIYOR ⚔️",
-        description=f"{interaction.user.mention} 🆚 {rakip.mention}\n\nHer iki tarafın da **100 Canı** var.\nİlk hamleyi {interaction.user.mention} yapacak.",
-        color=discord.Color.red()
-    )
-    
-    await interaction.response.send_message(embed=embed, view=view)
-
-# --- YARDIM MENÜSÜ ---
+    if rakip.bot or rakip == interaction.user: return await interaction.response.send_message("❌ Geçersiz rakip.", ephemeral=True)
+    await interaction.response.send_message(embed=discord.Embed(title="⚔️ BAŞLIYOR", description=f"{interaction.user.mention} vs {rakip.mention}"), view=DuelloView(interaction.user, rakip))
 
 # ==========================================
 # 5. YENİLENMİŞ YARDIM MENÜSÜ
@@ -566,7 +431,7 @@ async def duello(interaction: discord.Interaction, rakip: discord.User):
 async def komutlar(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📜 Bot Komut Merkezi",
-        description=f"Lordum {interaction.user.mention}, emrinize amade toplam **30+** komut bulunmaktadır.",
+        description=f"{interaction.user.mention}, emrinize amade toplam **30+** komut bulunmaktadır.",
         color=discord.Color.gold()
     )
 
@@ -598,11 +463,11 @@ async def komutlar(interaction: discord.Interaction):
         inline=False
     )
 
-    embed.set_footer(text="Furkan Otuk Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
+    embed.set_footer(text="Ali Eray Dinçer Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
     await interaction.response.send_message(embed=embed)
 
 if __name__ == "__main__":
     if not TOKEN:
-        print("Hata: DISCORD_TOKEN bulunamadı! Coolify Environment kısmını kontrol et.")
+        print("Hata: DISCORD_TOKEN bulunamadı!")
     else:
         bot.run(TOKEN)
