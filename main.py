@@ -463,7 +463,7 @@ async def komutlar(interaction: discord.Interaction):
         inline=False
     )
 
-    embed.set_footer(text="Ali Eray Dinçer Hazretleri'nin hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
+    embed.set_footer(text="Genel Krallığının hizmetindedir.", icon_url=bot.user.avatar.url if bot.user.avatar else None)
     await interaction.response.send_message(embed=embed)
 
 if __name__ == "__main__":
